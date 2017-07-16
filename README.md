@@ -1,7 +1,7 @@
 splitter-contract
 =================
 
-An Ethereum smart contract to receive funds and evenly split them between a set
+An Ethereum smart contract to receive evenly split received funds between a set
 number of outputs.
 
 Usage
