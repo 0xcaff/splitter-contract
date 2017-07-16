@@ -9,9 +9,42 @@
     "testrpc": "testrpc --deterministic",
     "deploy": "truffle deploy",
     "test": "truffle test",
-    "truffle": "truffle"
+    "truffle": "truffle",
+    "lint": "eslint test/*.js"
+  },
+  "eslintConfig": {
+    "env": {
+      "node": true,
+      "es6": true
+    },
+    "globals": {
+      "artifacts": true,
+      "contract": true,
+      "beforeEach": true,
+      "it": true,
+      "assert": true,
+      "web3": true
+    },
+    "extends": "eslint:recommended",
+    "parserOptions": {
+      "ecmaVersion": 2017
+    },
+    "rules": {
+      "indent": [
+        "error",
+        2
+      ],
+      "no-warning-comments": [
+        "warn"
+      ],
+      "linebreak-style": [
+        "error",
+        "unix"
+      ]
+    }
   },
   "devDependencies": {
+    "eslint": "^4.2.0",
     "ethereumjs-testrpc": "^4.0.1",
     "truffle": "^3.4.4"
   }
