@@ -1,8 +1,8 @@
 splitter-contract [![Build Status][build-status-image]][build-status]
 =================
 
-An Ethereum smart contract to receive evenly split received funds between a set
-number of outputs.
+An Ethereum smart contract to evenly split received funds between a set number
+of outputs.
 
 Usage
 -----
