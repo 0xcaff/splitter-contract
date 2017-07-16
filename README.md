@@ -1,4 +1,4 @@
-splitter-contract
+splitter-contract [![Build Status][build-status-image]][build-status]
 =================
 
 An Ethereum smart contract to receive evenly split received funds between a set
@@ -38,3 +38,6 @@ You can run test tests by running:
 
 [contract]: contracts/Splitter.sol
 [tests]: test/splitter.js
+
+[build-status-image]: https://travis-ci.org/0xcaff/splitter-contract.svg?branch=master
+[build-status]: https://travis-ci.org/0xcaff/splitter-contract
