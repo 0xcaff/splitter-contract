@@ -1,8 +1,8 @@
 splitter-contract
 =================
 
-An Ethereum smart contract which evenly splits all funds sent to it between a
-number of receving parties.
+An Ethereum smart contract to receive funds and evenly split them between a set
+number of outputs.
 
 Usage
 -----
@@ -20,7 +20,7 @@ Now, when ether is sent to the contract using a wallet or code like this:
 
     var WEI = 1;
     var ETHER = 10 ** 18 * WEI;
-    web3.eth.sendTransaction({to: contractAddress, value: 1 * ETHER});
+    web3.eth.sendTransaction({ to: contractAddress, value: 1 * ETHER });
 
 The incoming transaction will be split between the parties specified in the
 constructor and be available for withdrawl by calling `withdraw` or
