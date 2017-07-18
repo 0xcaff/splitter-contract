@@ -21,6 +21,11 @@ contract('Splitter', (accounts) => {
       const withdrew = await instance.amountsWithdrew(acc);
       assert(withdrew.eq(0));
     }));
+
+    await Promise.all(between.map(async acc => {
+      const balance = await instance.balance({ from: acc });
+      assert(balance.eq(0));
+    }));
   });
 
   it('should accept funds', async () => {
@@ -49,6 +54,12 @@ contract('Splitter', (accounts) => {
     // check totalInput
     const finalTotalInput = await instance.totalInput();
     assert(finalTotalInput.eq(funding));
+
+    // check balances
+    await Promise.all(between.map(async acc => {
+      const balance = await instance.balance({ from: acc });
+      assert(balance.eq(funding / 2));
+    }));
   });
 
   it('should split a single funding evenly between multiple parties', async () => {
@@ -62,11 +73,19 @@ contract('Splitter', (accounts) => {
     // we need to run serially otherwise we are looking at the wrong global
     // state
     await loopSerial(between, async (acc) => {
+      // collect initial state
       const initialContractBalance = await getBalance(instance.address);
       let initialAccountBalance = await getBalance(acc);
+      const contractAccountBalance = await instance.balance({ from: acc });
 
+      // sweep contract
       const tx = await instance.withdrawAll({ from: acc });
 
+      // undo gas cost
+      const cost = await gasCostFor(tx);
+      initialAccountBalance = initialAccountBalance.sub(cost);
+
+      // collect final state
       const finalContractBalance = await getBalance(instance.address);
       const finalAccountBalance = await getBalance(acc);
 
@@ -74,10 +93,8 @@ contract('Splitter', (accounts) => {
       const contractBalanceChange = finalContractBalance.sub(initialContractBalance);
       assert(contractBalanceChange.eq(-share));
 
-      const cost = await gasCostFor(tx);
-      initialAccountBalance = initialAccountBalance.sub(cost);
-
       const accountBalanceChange = finalAccountBalance.sub(initialAccountBalance);
+      assert(contractAccountBalance.eq(accountBalanceChange));
 
       const finalWithdrawlAmount = await instance.amountsWithdrew(acc);
       assert(accountBalanceChange.eq(finalWithdrawlAmount));
@@ -87,6 +104,19 @@ contract('Splitter', (accounts) => {
     });
 
     const finalBalance = await getBalance(instance.address);
+    assert(finalBalance.eq(0));
+  });
+
+  it("should always say non-participating parties have a balnce of 0 wei", async () => {
+    const acc = lastOf(accounts);
+    const amount = 1 * ETHER;
+
+    const initialBalance = await instance.balance({ from: acc });
+    assert(initialBalance.eq(0));
+
+    await instance.sendTransaction({ from: acc, value: amount });
+
+    const finalBalance = await instance.balance({ from: acc });
     assert(finalBalance.eq(0));
   });
 
@@ -109,7 +139,7 @@ contract('Splitter', (accounts) => {
     assert(finalContractBalance.eq(amount));
   });
 
-  it("shouldn throw when non-participants withdraw 0 wei", async () => {
+  it("should throw when non-participants withdraw 0 wei", async () => {
     const acc = lastOf(accounts);
 
     // make sure nothing happens (throw or state change)
@@ -154,8 +184,12 @@ contract('Splitter', (accounts) => {
       const finalBalance = await getBalance(acc);
       const balanceChange = finalBalance.sub(initialBalance);
 
+      // 1 ether is half of the amount funded into the account
       assert(balanceChange.eq(1 * ETHER));
     });
   });
-});
 
+  it('should not expose withdrawInternal', async () => {
+    assert(instance.withdrawInternal === undefined);
+  });
+});

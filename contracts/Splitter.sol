@@ -10,8 +10,8 @@ contract Splitter {
     // A list of parties to split the funds between. When adding elements to the
     // between mapping, remember to update count, otherwise the split will be
     // uneven.
-    uint8 count;
-    mapping(address => bool) between;
+    uint8 public count;
+    mapping(address => bool) public between;
 
     // The total amount of funds which has been deposited into the contract.
     uint public totalInput;
@@ -44,35 +44,66 @@ contract Splitter {
     /// transaction.
     /// @param amount The amount of funds in wei to withdraw from the contract.
     function withdraw(uint amount) {
-        // Require the withdrawer to be a specified.
-        require(between[msg.sender] == true);
-
-        // Ensures the funds are available to make the transfer, otherwise
-        // throws.
-        uint withdrew = amountsWithdrew[msg.sender];
-        uint share = totalInput / count;
-        uint available = share - withdrew;
-
-        assert(available >= 0);
-        require(available >= amount);
-
-        // Updates the internal state, this is done before the transfer to
-        // prevent re-entrancy bugs.
-        amountsWithdrew[msg.sender] += amount;
-
-        // Transfer funds from the contract to the sender. The gas for this
-        // transaction is paid for by msg.sender.
-        msg.sender.transfer(amount);
+        Splitter.withdrawInternal(amount, false);
     }
 
     /// @notice Withdraws all funds available to the sender and deposits them
     /// into the sender's account.
     function withdrawAll() {
+        Splitter.withdrawInternal(0, true);
+    }
+
+    // Since `withdrawInternal` is internal, it isn't in the ABI and can't be
+    // called from outside of the contract.
+
+    /// @notice Checks whether the sender is allowed to withdraw and has
+    /// sufficient funds, then withdraws.
+    /// @param requested The amount of funds in wei to withdraw from the
+    /// contract. If the `all` parameter is true, the `amount` parameter is
+    /// ignored. If funds are insufficient, throws.
+    /// @param all If true, withdraws all funds the sender has access to from
+    /// this contract.
+    function withdrawInternal(uint requested, bool all) internal {
+        // Require the withdrawer to be included in `between` at contract
+        // creation time.
+        require(between[msg.sender]);
+
+        // Decide the amount to withdraw based on the `all` parameter.
+        uint available = Splitter.balance();
+        uint transferring = 0;
+
+        if (all) { transferring = available; }
+        else { available = requested; }
+
+        // Ensures the funds are available to make the transfer, otherwise
+        // throws.
+        require(transferring <= available);
+
+        // Updates the internal state, this is done before the transfer to
+        // prevent re-entrancy bugs.
+        amountsWithdrew[msg.sender] += transferring;
+
+        // Transfer funds from the contract to the sender. The gas for this
+        // transaction is paid for by msg.sender.
+        msg.sender.transfer(transferring);
+    }
+
+    /// @notice Gets the amount of funds in Wei available to the sender.
+    function balance() constant returns (uint) {
+        if (!between[msg.sender]) {
+            // The sender of the message isn't part of the split. Ignore them.
+            return 0;
+        }
+
+        // `share` is the amount of funds which are available to each of the
+        // accounts specified in the constructor.
         uint share = totalInput / count;
         uint withdrew = amountsWithdrew[msg.sender];
         uint available = share - withdrew;
 
-        Splitter.withdraw(available);
+        assert(available >= 0 && available <= share);
+
+        return available;
     }
 
     // This function will be run when a transaction is sent to the contract
