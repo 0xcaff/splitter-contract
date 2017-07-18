@@ -9,7 +9,7 @@ contract('Splitter', (accounts) => {
 
   beforeEach(async () => {
     // reset state between runs
-    instance = await Splitter.new();
+    instance = await Splitter.new(between);
   });
 
   it('starts in the expected state', async () => {
