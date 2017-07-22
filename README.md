@@ -11,7 +11,7 @@ To deploy an instance of this contract, copy the code from
 an array of addresses which the funds will be shared between into the
 constructor.
 
-You can deploy the contract using truffle by configuring the [deployment
+You can also deploy the contract using truffle by configuring the [deployment
 script][deploy] with your addresses and running:
 
     $ npm install

@@ -41,8 +41,6 @@ const loopSerial = async (arr, asyncInnerFunction) => {
 
 const lastOf = (arr) => arr[arr.length - 1];
 
-const ETHER = 10 ** 18;
-
 const gasCostFor = async ({ tx: txHash }) => {
   const tx = await getTransaction(txHash);
   const receipt = await getTransactionReceipt(txHash);
@@ -50,7 +48,12 @@ const gasCostFor = async ({ tx: txHash }) => {
   return costOf(tx, receipt);
 };
 
+const toWei = (...args) => {
+  const result = web3.toWei(...args);
+  return web3.toBigNumber(result);
+}
+
 module.exports = {
   getBalance, getTransaction, getTransactionReceipt, costOf, loopSerial, lastOf,
-  ETHER, assertPromiseThrows, gasCostFor
+  assertPromiseThrows, gasCostFor, toWei
 };

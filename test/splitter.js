@@ -1,5 +1,5 @@
-const { getBalance, gasCostFor, loopSerial, lastOf, ETHER,
-  assertPromiseThrows } = require('./utils');
+const { getBalance, gasCostFor, loopSerial, lastOf, assertPromiseThrows, toWei }
+  = require('./utils');
 
 const Splitter = artifacts.require("./Splitter.sol");
 
@@ -29,7 +29,7 @@ contract('Splitter', (accounts) => {
   });
 
   it('should accept funds', async () => {
-    const depositing = 1 * ETHER;
+    const depositing = toWei(1, 'ether');
 
     const contractBalanceBefore = await getBalance(instance.address);
     await instance.sendTransaction({ from: lastOf(accounts), value: depositing });
@@ -40,7 +40,7 @@ contract('Splitter', (accounts) => {
 
   it('updates internal state when adding funds', async () => {
     const funder = lastOf(accounts);
-    const funding = 1 * ETHER;
+    const funding = toWei(1, 'ether');
 
     // add funds
     await instance.sendTransaction({ from: funder, value: funding });
@@ -58,13 +58,13 @@ contract('Splitter', (accounts) => {
     // check balances
     await Promise.all(between.map(async acc => {
       const balance = await instance.balance({ from: acc });
-      assert(balance.eq(funding / 2));
+      assert(balance.eq(funding.div(2)));
     }));
   });
 
   it('should split a single funding evenly between multiple parties', async () => {
     const funder = lastOf(accounts);
-    const funding = 1 * ETHER;
+    const funding = toWei(1, 'ether');
 
     // add funds
     await instance.sendTransaction({ from: funder, value: funding });
@@ -89,9 +89,9 @@ contract('Splitter', (accounts) => {
       const finalContractBalance = await getBalance(instance.address);
       const finalAccountBalance = await getBalance(acc);
 
-      const share = funding / between.length;
+      const share = funding.div(between.length);
       const contractBalanceChange = finalContractBalance.sub(initialContractBalance);
-      assert(contractBalanceChange.eq(-share));
+      assert(contractBalanceChange.eq(share.mul(-1)));
 
       const accountBalanceChange = finalAccountBalance.sub(initialAccountBalance);
       assert(contractAccountBalance.eq(accountBalanceChange));
@@ -109,7 +109,7 @@ contract('Splitter', (accounts) => {
 
   it("should always say non-participating parties have a balnce of 0 wei", async () => {
     const acc = lastOf(accounts);
-    const amount = 1 * ETHER;
+    const amount = toWei(1, 'ether');
 
     const initialBalance = await instance.balance({ from: acc });
     assert(initialBalance.eq(0));
@@ -122,7 +122,7 @@ contract('Splitter', (accounts) => {
 
   it('should fail to overdraw funds by an non-participating party', async () => {
     const acc = lastOf(accounts);
-    const amount = 1 * ETHER;
+    const amount = toWei(1, 'ether');
 
     await instance.sendTransaction({ from: acc, value: amount });
 
@@ -160,8 +160,10 @@ contract('Splitter', (accounts) => {
     const initialBalances = await Promise.all(
       between.map(acc => getBalance(acc)));
 
+    const eachFunding = toWei(1, 'ether');
+
     // fund once
-    await instance.sendTransaction({ from: funder, value: 1 * ETHER });
+    await instance.sendTransaction({ from: funder, value: eachFunding });
 
     // withdraw some stuff
     const tx = await instance.withdrawAll({ from: accounts[0] });
@@ -171,7 +173,7 @@ contract('Splitter', (accounts) => {
     initialBalances[0] = initialBalances[0].sub(cost);
 
     // fund again
-    await instance.sendTransaction({ from: funder, value: 1 * ETHER });
+    await instance.sendTransaction({ from: funder, value: eachFunding });
 
     // sweep all accounts and check balances
     await loopSerial(between, async (acc, i) => {
@@ -185,8 +187,35 @@ contract('Splitter', (accounts) => {
       const balanceChange = finalBalance.sub(initialBalance);
 
       // 1 ether is half of the amount funded into the account
-      assert(balanceChange.eq(1 * ETHER));
+      assert(balanceChange.eq(eachFunding));
     });
+  });
+
+  it('should leave the remainder of un-evenly split inputs in the contract for future withdrawls', async () => {
+    const funder = lastOf(accounts);
+    const funding = toWei(1, 'ether').add(1);
+
+    const initialBalances = await Promise.all(
+      between.map(acc => getBalance(acc)));
+
+    await instance.sendTransaction({ from: funder, value: funding });
+
+    // sweep accounts
+    await loopSerial(between, async (acc, i) => {
+      // sweep
+      const tx = await instance.withdrawAll({ from: acc });
+      const cost = await gasCostFor(tx);
+      const initialBalance = initialBalances[i].sub(cost);
+
+      const finalBalance = await getBalance(acc);
+      const balanceChange = finalBalance.sub(initialBalance);
+
+      assert(balanceChange.eq(funding.sub(1).div(2)));
+    });
+
+    // the contract balance should hold the remainder
+    const contractBalance = await getBalance(instance.address);
+    assert(contractBalance.eq(1));
   });
 
   it('should not expose withdrawInternal', async () => {
