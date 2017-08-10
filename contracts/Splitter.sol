@@ -2,7 +2,7 @@ pragma solidity ^0.4.11;
 
 /// @title Splitter
 /// @author 0xcaff (Martin Charles)
-/// @notice An ethereum smart contract to split received finds between a number
+/// @notice An ethereum smart contract to split received funds between a number
 /// of outputs.
 contract Splitter {
     // Mapping between addresses and how much money they have withdrawn. This is
