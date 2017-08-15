@@ -1,3 +1,6 @@
+const SHA3 = require('sha3');
+const RLP = require('rlp');
+
 const assertPromiseThrows = async (fn) => {
   var exception;
 
@@ -30,6 +33,12 @@ const getTransaction = (hash) =>
 const getTransactionReceipt = (hash) =>
   promisify(cb => web3.eth.getTransactionReceipt(hash, cb));
 
+const getTransactionCount = (address) =>
+  promisify(cb => web3.eth.getTransactionCount(address, cb));
+
+const sendTransaction = (...args) =>
+  promisify(cb => web3.eth.sendTransaction(...args, cb));
+
 const costOf = ({ gasPrice }, { gasUsed }) => gasPrice.mul(gasUsed);
 
 const loopSerial = async (arr, asyncInnerFunction) => {
@@ -53,7 +62,24 @@ const toWei = (...args) => {
   return web3.toBigNumber(result);
 }
 
+const sha3 = (input) => {
+  const d = new SHA3.SHA3Hash(256);
+  d.update(input);
+  return d.digest('hex');
+};
+ 
+const calculateContractAddress = (fromAddress, nonce) => {
+  const encoded = RLP.encode([ fromAddress, nonce ]);
+  const rawAddress = sha3(encoded);
+
+  // Take the first 12 bytes. In hex, each byte is represented by two chars.
+  const contractAddress = rawAddress.slice(12 * 2);
+
+  return contractAddress;
+}
+
 module.exports = {
   getBalance, getTransaction, getTransactionReceipt, costOf, loopSerial, lastOf,
-  assertPromiseThrows, gasCostFor, toWei
+  assertPromiseThrows, gasCostFor, toWei, calculateContractAddress,
+  getTransactionCount, sendTransaction
 };

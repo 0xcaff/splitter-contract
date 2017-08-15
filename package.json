@@ -46,6 +46,8 @@
   "devDependencies": {
     "eslint": "^4.2.0",
     "ethereumjs-testrpc": "^4.0.1",
+    "rlp": "^2.0.0",
+    "sha3": "^1.2.0",
     "truffle": "^3.4.4"
   }
 }

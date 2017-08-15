@@ -26,6 +26,11 @@ contract Splitter {
 
     /// @param addrs The address received funds will be split between.
     function Splitter(address[] addrs) {
+        // Contracts can be deployed to addresses with ETH already in them. We
+        // want to call balance on address not the balance function defined
+        // below so a cast is necessary.
+        totalInput = address(this).balance;
+
         count = addrs.length;
 
         for (uint i = 0; i < addrs.length; i++) {

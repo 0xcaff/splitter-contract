@@ -1,5 +1,9 @@
-const { getBalance, gasCostFor, loopSerial, lastOf, assertPromiseThrows, toWei }
-  = require('./utils');
+/* global describe:false */
+
+const {
+  getBalance, gasCostFor, loopSerial, lastOf, assertPromiseThrows, toWei,
+  calculateContractAddress, getTransactionCount, sendTransaction,
+} = require('./utils');
 
 const Splitter = artifacts.require("./Splitter.sol");
 
@@ -219,6 +223,37 @@ contract('Splitter', (accounts) => {
   });
 
   it('should not expose withdrawInternal', async () => {
+    // A similar bug brought down the parity multi-sig wallet.
     assert(instance.withdrawInternal === undefined);
+  });
+
+  it('should handle a non-zero starting balance', async () => {
+    const deployer = accounts[0];
+    const funder = accounts[3];
+
+    const deployerNonce = await getTransactionCount(deployer);
+
+    const contractAddress = calculateContractAddress(deployer, deployerNonce);
+
+    await sendTransaction({
+      from: funder,
+      to: `0x${contractAddress}`,
+      value: web3.toWei(1, 'ether'),
+    });
+
+    const instance = await Splitter.new({ from: deployer });
+    const totalInput = await instance.totalInput();
+
+    assert(totalInput.eq(web3.toWei(1, 'ether')));
+  });
+});
+
+describe('calculateContractAddress', () => {
+  it('should calculate the correct address', () => {
+    const sender = '0x42da8a05cb7ed9a43572b5ba1b8f82a0a6e263dc';
+    const nonce = 158088;
+
+    const contractAddress = calculateContractAddress(sender, nonce);
+    assert.strictEqual(contractAddress, '2b6c0e2198942e0cedbdfc5b9f63f81ac6eeb5e7');
   });
 });
