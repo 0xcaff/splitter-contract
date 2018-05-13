@@ -158,6 +158,21 @@ contract('Splitter', (accounts) => {
     assert(finalAmountWithdrawn.sub(initialAmountWithdrawn).eq(0));
   });
 
+  it('should withdraw some but not all wei from an account', async () => {
+    const funder = lastOf(accounts);
+    const fundAmount = 100;
+
+    await instance.sendTransaction({ from: funder, value: fundAmount });
+
+    const withdrawAmount = 10;
+
+    const initialContractBalance = await getBalance(instance.address);
+    await instance.withdraw(withdrawAmount, { from: accounts[0] });
+    const finalContractBalance = await getBalance(instance.address);
+
+    assert(initialContractBalance.sub(finalContractBalance).eq(withdrawAmount));
+  });
+
   it('should evenly split multiple fundings with withdrawls in between', async () => {
     const funder = lastOf(accounts);
 
