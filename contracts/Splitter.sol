@@ -79,7 +79,7 @@ contract Splitter {
         uint transferring = 0;
 
         if (all) { transferring = available; }
-        else { available = requested; }
+        else { transferring = requested; }
 
         // Ensures the funds are available to make the transfer, otherwise
         // throws.
